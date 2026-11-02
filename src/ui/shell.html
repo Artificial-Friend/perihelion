@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Perihelion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;500;600&family=Saira:wght@400;500;600&display=swap" rel="stylesheet">
+<style>/*CSS*/</style></head><body>
+<div id="app">
+  <canvas id="gl" aria-label="3D view of the solar system"></canvas>
+  <svg id="ovl" aria-hidden="true"></svg>
+  <div id="ui"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="modal" hidden><div class="pane" id="mcard"></div></div>
+  <div id="loading"><div class="ld"><b>PERIHELION</b><span id="loadmsg">Loading…</span></div></div>
+</div>
+<script type="module" src="game.js"></script>
+</body></html>

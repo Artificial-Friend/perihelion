@@ -23,7 +23,7 @@ npm run serve        # http://127.0.0.1:8766  (add ?dev for the dev tray, ?webgl
 | `core/` | C++ physics core: deterministic math (`pmath.h`), orbits, rendezvous, ephemerides, environment (`sim.h`), the exported C ABI (`api.cpp`) |
 | `src/sim/` | Typed wrapper over the core (`core.ts`) and the shared world clock (`clock.ts`) |
 | `src/render/` | Renderer, Earth atmosphere, stars, materials, ships, hangar, Stage 3–4 craft |
-| `src/world/` | Floating-origin scene and the free camera |
+| `src/world/` | Floating-origin scene, the free camera, and the wider solar system (`system.ts`: outer planets, rings, moons, belts, named small bodies, seeded visitors and Earth flybys) |
 | `src/game/` | Stage logic: `ground` (1), `ops` + `orbit` (2), `haul` (3), `sovereign` (4), `game` (save, objectives, rendering glue) |
 | `src/net/` | Shared-world backend (claude.ai artifact storage, or local fallback) |
 | `src/ui/` | Interface, infographic overlay, SVG charts, DOM morphing, styles, page shell |
@@ -31,6 +31,8 @@ npm run serve        # http://127.0.0.1:8766  (add ?dev for the dev tray, ?webgl
 
 ## Status
 
-Development build v3: all four designed stages are playable, with a stage selector on the title screen. See the design spec and roadmap documents for the plan.
+Development build v3: all four designed stages are playable, with a stage selector on the title screen.
+
+**Solar system.** All eight planets (Uranus and Neptune from JPL approximate elements), planet poles, Saturn's and Uranus's rings, major moons, about 15,000 belt objects (main belt with Kirkwood gaps, Jupiter trojans, Kuiper belt), named dwarf planets, asteroids and comets, the three known interstellar objects, and seeded objects that come and go: interstellar visitors, long-period comets and small asteroids passing Earth. Orbits are two-body Keplerian from published elements, so positions are approximate; moon phases are seeded rather than taken from an ephemeris. See the design spec and roadmap documents for the plan.
 
 **Physics core.** The C++ source was rebuilt from the v3 compiled module (its original source was lost in a workspace reset). The parity test proves the rebuild matches that module bit for bit on 180,000 random cases across all 18 exports, and that native builds match WebAssembly exactly. Any change to the core that alters results must update `test/core-v3.wasm` deliberately.

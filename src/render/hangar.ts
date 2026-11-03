@@ -99,6 +99,7 @@ export class HangarView {
     const c = Math.cos(this.pitch);
     this.camera.position.set(Math.sin(this.yaw) * c * this.dist, 3.6 + Math.sin(this.pitch) * this.dist, Math.cos(this.yaw) * c * this.dist - 2);
     this.camera.lookAt(0, 3.6, -2);
+    this.camera.updateMatrixWorld(true);
   }
   resize(w: number, h: number) { this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
   /** Screen position of a world point in this view, or null when behind the camera. */

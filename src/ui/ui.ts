@@ -335,8 +335,8 @@ export class UI {
     chips.push(['earth', 'Earth'], ['moon', 'Moon']);
     if (s.unlocked >= 3) chips.push(['kamo', 'Kamoʻoalewa'], ['mars', 'Mars'], ['ceres', 'Ceres']);
     else chips.push(['mars', 'Mars'], ['venus', 'Venus']);
-    chips.push(['jupiter', 'Jupiter'], ['sun', 'Sun']);
-    const label = chips.find(c => c[0] === id)?.[1] || id;
+    chips.push(['jupiter', 'Jupiter'], ['saturn', 'Saturn'], ['sun', 'Sun']);
+    const label = chips.find(c => c[0] === id)?.[1] || (id.includes(':') ? this.focusMeta(id).name : id[0].toUpperCase() + id.slice(1));
     return chips.map(([k, n]) => `<button class="chip${id === k ? ' on' : ''}" data-act="focus" data-v="${k}">${esc(n)}</button>`).join('') +
       `<span class="scale">${C.ruler()}<span class="num">${fmtScale(this.cam.distKm)} from ${esc(label)}</span></span>`;
   }
@@ -364,11 +364,13 @@ export class UI {
     const game = this.game, co = game.camOut, id = co.focusId, info = game.focusInfo(id);
     let focus: OvFocus | null = null;
     if (info) {
-      const p = this.world.project(info.pos) || (id === 'earth' ? [W / 2, H / 2, 0] as any : null);
+      // Project the point the camera actually looks at: re-reading the clock here would misplace fast objects seen up close.
+      const fp = this.cam.moving ? info.pos : co.focus;
+      const p = this.world.project(fp) || (id === 'earth' ? [W / 2, H / 2, 0] as any : null);
       if (p) {
         const meta = this.focusMeta(id);
         const sunCam = new THREE.Vector3(...V.norm(V.sub(game.ephem.sun, co.pos))).applyQuaternion(this.gfx.camera.quaternion.clone().invert());
-        focus = { x: p[0], y: p[1], r: Math.max(30, this.world.screenRadius(info.pos, meta.rKm)), name: meta.name, meas: meta.meas, detail: meta.detail, col: meta.col, sunAng: id === 'sun' ? null : Math.atan2(-sunCam.y, sunCam.x) };
+        focus = { x: p[0], y: p[1], r: Math.max(30, this.world.screenRadius(fp, meta.rKm)), name: meta.name, meas: meta.meas, detail: meta.detail, col: meta.col, sunAng: id === 'sun' ? null : Math.atan2(-sunCam.y, sunCam.x) };
       }
     }
     const labels: OvLabel[] = [];
@@ -394,6 +396,7 @@ export class UI {
       case 'kamo': return { name: 'Kamoʻoalewa', meas: '≈ 40–100 m asteroid', detail: 'Earth’s quasi-moon', col: '#b48cff', rKm: 0.05 };
       case 'ceres': return { name: 'Ceres', meas: 'Ø 940 km', detail: 'dwarf planet, main belt', col: '#2fd6b5', rKm: 470 };
     }
+    if (id.startsWith('sb:') || id.startsWith('sat:')) return this.world.system.meta(id, t, g.ephem);
     if (P) return { name: P.name, meas: 'Ø ' + Math.round(P.r * 2).toLocaleString('en-US') + ' km', detail: '', col: '#' + P.col.toString(16).padStart(6, '0'), rKm: P.r };
     return { name: id, meas: '', detail: '', col: '#4da3ff', rKm: 1 };
   }

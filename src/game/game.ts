@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu';
 import { core, V, Vec3, Ephem, R_EARTH, DEG } from '../sim/core';
 import { worldNow } from '../sim/clock';
 import { WorldScene, PLANETS } from '../world/scene';
+import { planetHelioAt } from '../world/system';
 import { FreeCamera, CamOut, FocusInfo } from '../world/camera';
 import { WorldBackend, createBackend } from '../net/backend';
 import { Ground, GroundSave, newGround, MODULES, LAUNCH_COST, START_CREDITS } from './ground';
@@ -254,8 +255,9 @@ export class Game {
       case 'sun': return { pos: e.sun, minKm: 696000 * 1.2, defaultKm: 5e8 };
       case 'kamo': case 'ceres': return { pos: helioToGeo(bodyHelioPos(id, t), t), minKm: 50, defaultKm: 2e5 };
     }
+    if (id.startsWith('sb:') || id.startsWith('sat:')) return this.world.system.focusInfo(id, t, e);
     const k = PLANETS.findIndex(p => p.name.toLowerCase() === id);
-    return k >= 0 && k !== 2 ? { pos: V.sub(e.planets[k], sunHelio), minKm: PLANETS[k].r * 1.05, defaultKm: PLANETS[k].r * 9 } : null;
+    return k >= 0 && k !== 2 ? { pos: V.sub(planetHelioAt(k, t, e), sunHelio), minKm: PLANETS[k].r * 1.05, defaultKm: PLANETS[k].r * 9 } : null;
   }
   /** Glide the camera to an object. `km` overrides the default viewing distance. */
   focus(id: string, km?: number) {
@@ -431,16 +433,18 @@ export class Game {
     }
     // Bodies
     const dist = this.camOut.dist;
-    if (dist > 1e10) labels.push({ k: 'sun', p: this.ephem.sun, title: 'Sun', sub: 'the solar system', cls: 'body', focus: 'sun', col: '#ffd27a' });
+    if (dist > 1e11) labels.push({ k: 'sun', p: this.ephem.sun, title: 'Sun', sub: 'the solar system', cls: 'body', focus: 'sun', col: '#ffd27a' });
     else {
       if (dist > 4e4) labels.push({ k: 'earth', p: [0, 0, 0], title: 'Earth', cls: 'body', focus: 'earth', col: '#4da3ff' });
-      if (dist > 2e3) labels.push({ k: 'moon', p: this.ephem.moon, title: 'Moon', cls: 'body', focus: 'moon', col: '#c8d4e6' });
+      if (dist > 2e3 && dist < 5e7) labels.push({ k: 'moon', p: this.ephem.moon, title: 'Moon', cls: 'body', focus: 'moon', col: '#c8d4e6' });
       if (dist > 2e6) {
         labels.push({ k: 'sun', p: this.ephem.sun, title: 'Sun', cls: 'body', focus: 'sun', col: '#ffd27a' });
         const sunHelio = V.mul(this.ephem.sun, -1);
-        PLANETS.forEach((p, k) => { if (p.name !== 'Earth') labels.push({ k: 'pl' + k, p: V.sub(this.ephem.planets[k], sunHelio), title: p.name, cls: 'body', focus: p.name.toLowerCase(), col: '#' + p.col.toString(16).padStart(6, '0') }); });
+        PLANETS.forEach((p, k) => { if (p.name !== 'Earth') labels.push({ k: 'pl' + k, p: V.sub(planetHelioAt(k, t, this.ephem), sunHelio), title: p.name, cls: 'body', focus: p.name.toLowerCase(), col: '#' + p.col.toString(16).padStart(6, '0') }); });
       }
     }
+    // Moons, dwarf planets, asteroids, comets and passing rocks, at the scale in view.
+    if (dist <= 1e11) labels.push(...w.system.labels(t, this.camOut, this.ephem));
     this.labels = labels;
   }
 }

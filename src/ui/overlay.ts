@@ -54,10 +54,16 @@ export class Overlay {
     }
     // Header: name, size, detail; to the right of the square, or to its left when the right panel is in the way.
     const tw = Math.max(f.name.length * 9, f.meas.length * 6.6, f.detail.length * 6.4) + 10;
-    const right = x + q + 14 + tw < W - 420;
-    const hx = right ? x + q + 14 : Math.max(360 + tw, x - q - 14), hy = Math.max(96, y - q), anc = right ? 'start' : 'end';
+    // Keep the header on the side it was on until it truly no longer fits (no flip-flopping).
+    const fitsRight = x + q + 14 + tw < W - 420, fitsLeft = x - q - 14 - tw > 360;
+    // When the square is too wide for either side (a body filling the view), the header sits inside its top-left corner.
+    const inside = !fitsRight && !fitsLeft;
+    const right = inside || (this.headerRight ? (fitsRight || !fitsLeft) : (!fitsLeft && fitsRight));
+    if (!inside) this.headerRight = right;
+    const hx = inside ? Math.max(372, x - q + 16) : right ? x + q + 14 : Math.max(360 + tw, x - q - 14);
+    const hy = inside ? Math.max(112, y - q + 30) : Math.max(96, y - q), anc = right ? 'start' : 'end';
     this.header = right ? [hx, hy - 16, hx + tw, hy + 38] : [hx - tw, hy - 16, hx, hy + 38];
-    s += `<path d="M${f1(right ? x + q : x - q)} ${f1(y - q)}L${f1(hx + (right ? -4 : 4))} ${f1(hy - 4)}" stroke="${c}" stroke-opacity=".5"/>`;
+    if (!inside) s += `<path d="M${f1(right ? x + q : x - q)} ${f1(y - q)}L${f1(hx + (right ? -4 : 4))} ${f1(hy - 4)}" stroke="${c}" stroke-opacity=".5"/>`;
     s += `<text x="${f1(hx)}" y="${f1(hy + 2)}" text-anchor="${anc}" fill="#e4eeff" font-size="17" font-weight="600">${esc(f.name)}</text>`;
     s += `<text x="${f1(hx)}" y="${f1(hy + 19)}" text-anchor="${anc}" fill="${c}" font-size="12">${esc(f.meas)}</text>`;
     if (f.detail) s += `<text x="${f1(hx)}" y="${f1(hy + 34)}" text-anchor="${anc}" fill="#a9bfdf" font-size="12">${esc(f.detail)}</text>`;
@@ -65,20 +71,25 @@ export class Overlay {
   }
 
   private header: [number, number, number, number] | null = null;
+  private headerRight = true;
+  private side: Record<string, number> = {};
   private labels(ls: OvLabel[], focus: OvFocus | null) {
     const taken: [number, number, number, number][] = [];
     if (this.header) taken.push(this.header);
     let s = '';
     for (const l of ls) {
       const c = l.col || '#4da3ff';
-      // Leader: up-right diagonal then a shelf the text sits on; flip left near the right edge.
-      const flip = l.x > window.innerWidth - 220, dx = flip ? -1 : 1;
-      let tx = l.x + dx * 22, ty = l.y - 18;
+      // Leader: up-right diagonal then a shelf the text sits on; flip left near the right panel,
+      // with hysteresis so a label never jumps back and forth while the camera moves.
+      const prev = this.side[l.k] ?? 1, edge = window.innerWidth - 420;
+      const dx = prev === 1 ? (l.x > edge + 20 ? -1 : 1) : (l.x < edge - 60 ? 1 : -1);
+      this.side[l.k] = dx;
+      const flip = dx < 0;
+      const tx = l.x + dx * 22, ty = l.y - 18;
       const w = 10 + Math.max(l.title.length * 7.2, (l.sub || '').length * 6.2);
       let box: [number, number, number, number] = flip ? [tx - w, ty - 16, tx, ty + 16] : [tx, ty - 16, tx + w, ty + 16];
-      let tries = 0;
-      while (taken.some(b => b[0] < box[2] && box[0] < b[2] && b[1] < box[3] && box[1] < b[3]) && tries++ < 4) { ty -= 22; box = [box[0], box[1] - 22, box[2], box[3] - 22]; }
-      if (tries > 4) continue;
+      // A label that would overlap one already placed is hidden, never moved: labels stay put.
+      if (taken.some(b => b[0] < box[2] && box[0] < b[2] && b[1] < box[3] && box[1] < b[3])) continue;
       taken.push(box);
       const act = l.focus ? ` class="hit" data-act="focus" data-v="${esc(l.focus)}"` : '';
       s += `<g${act}>`;

@@ -266,3 +266,12 @@ input[type=text], .field input { width: 100%; padding: 9px 11px; background: rgb
 /* Text drawn over the 3D world gets a dark halo so it reads on bright Earth. */
 #ovl text, .track text.halo, svg text.halo { paint-order: stroke; stroke: rgba(4,10,22,.85); stroke-width: 3px; stroke-linejoin: round; font-family: var(--f-body); }
 #ovl text[font-weight="600"] { font-family: var(--f-head); }
+
+/* Level change (space <-> hangar): a quick fade through deep blue with a construction ring. */
+#fade { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s ease; z-index: 25;
+  background: radial-gradient(circle at 50% 50%, rgba(77,163,255,.18) 0 18%, transparent 18.2% 30%, rgba(77,163,255,.12) 30.2%, transparent 30.6%), #050c1a; }
+#fade.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #fade { transition: none; } }
+/* The scale readout keeps a fixed width so the focus bar never shifts while zooming. */
+.focusbar .scale { min-width: 230px; }
+.focusbar .scale .num { display: inline-block; min-width: 180px; }

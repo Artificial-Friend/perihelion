@@ -245,27 +245,28 @@ export class Game {
   focusInfo(id: string): FocusInfo | null {
     const t = this.now(), e = this.ephem || core.ephem(t), sunHelio = V.mul(e.sun, -1);
     switch (id) {
-      case 'ship': { const s = this.shipState(t); return s ? { pos: s.r, minKm: 0.0075, defaultKm: 0.08, parent: 'earth', promoteKm: 6e4 } : null; }
-      case 'hauler': return this.haul ? { pos: this.haulerGeo(t), minKm: 0.04, defaultKm: 0.3, parent: 'sun', promoteKm: 2e8 } : null;
-      case 'claim': return this.sov ? { pos: siteGeo(this.sov.s.site, t), minKm: 0.05, defaultKm: 0.22, parent: 'sun', promoteKm: 2e8 } : null;
-      case 'base': return this.ground ? { pos: this.ground.siteECI(t), minKm: 25, defaultKm: 1800, parent: 'earth', promoteKm: 6e4 } : null;
-      case 'earth': return { pos: [0, 0, 0], minKm: R_EARTH * 1.03, defaultKm: 26000, parent: 'sun', promoteKm: 6e7 };
-      case 'moon': return { pos: e.moon, minKm: 1737 * 1.05, defaultKm: 9000, parent: 'sun', promoteKm: 6e7 };
+      case 'ship': { const s = this.shipState(t); return s ? { pos: s.r, minKm: 0.0075, defaultKm: 0.08 } : null; }
+      case 'hauler': return this.haul ? { pos: this.haulerGeo(t), minKm: 0.04, defaultKm: 0.3 } : null;
+      case 'claim': return this.sov ? { pos: siteGeo(this.sov.s.site, t), minKm: 0.05, defaultKm: 0.22 } : null;
+      case 'base': { if (!this.ground) return null; const p = this.ground.siteECI(t); return { pos: p, minKm: 12, defaultKm: 1800, up: V.norm(p), minElev: 0.18 }; }
+      case 'earth': return { pos: [0, 0, 0], minKm: R_EARTH * 1.03, defaultKm: 26000 };
+      case 'moon': return { pos: e.moon, minKm: 1737 * 1.05, defaultKm: 9000 };
       case 'sun': return { pos: e.sun, minKm: 696000 * 1.2, defaultKm: 5e8 };
-      case 'kamo': case 'ceres': return { pos: helioToGeo(bodyHelioPos(id, t), t), minKm: 50, defaultKm: 2e5, parent: 'sun', promoteKm: 2e8 };
+      case 'kamo': case 'ceres': return { pos: helioToGeo(bodyHelioPos(id, t), t), minKm: 50, defaultKm: 2e5 };
     }
     const k = PLANETS.findIndex(p => p.name.toLowerCase() === id);
-    return k >= 0 && k !== 2 ? { pos: V.sub(e.planets[k], sunHelio), minKm: PLANETS[k].r * 1.05, defaultKm: PLANETS[k].r * 9, parent: 'sun', promoteKm: 6e7 } : null;
+    return k >= 0 && k !== 2 ? { pos: V.sub(e.planets[k], sunHelio), minKm: PLANETS[k].r * 1.05, defaultKm: PLANETS[k].r * 9 } : null;
   }
-  focus(id: string) {
+  /** Glide the camera to an object. `km` overrides the default viewing distance. */
+  focus(id: string, km?: number) {
     const from = this.camOut?.focus || null, f = this.focusInfo(id);
     if (!f) return;
-    this.cam.setFocus(id, from, f.defaultKm);
+    this.cam.setFocus(id, from, km ?? f.defaultKm);
     if (id === 'base') {
-      // Look down at the base from above, north up.
+      // Turn to look down at the base from above, north up, while the camera glides there.
       const up = new THREE.Vector3(...V.norm(f.pos)), north = new THREE.Vector3(0, 0, 1).sub(up.clone().multiplyScalar(up.z)).normalize();
       const eye = up.clone().multiplyScalar(0.8).addScaledVector(north, -0.6).normalize();
-      this.cam.q.setFromRotationMatrix(new THREE.Matrix4().lookAt(eye, new THREE.Vector3(), north));
+      this.cam.turnTo(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(eye, new THREE.Vector3(), north)));
     }
   }
   haulerGeo(t: number): Vec3 {

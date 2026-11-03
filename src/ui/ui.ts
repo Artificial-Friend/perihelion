@@ -415,8 +415,8 @@ export class UI {
       case 'dispatch': { const e = gr!.recoveryEvents(t).find(x => x.id === v); if (e) { gr!.dispatch(e, t); g.persist(); } break; }
       case 'research': gr!.start('research', v, t); g.persist(); break;
       case 'build': gr!.start('build', v, t); g.persist(); break;
-      case 'openhangar': this.hangarOpen = true; break;
-      case 'closehangar': this.hangarOpen = false; break;
+      case 'openhangar': this.enterHangar(); break;
+      case 'closehangar': this.exitHangar(); break;
       case 'launch': this.hangarOpen = false; g.launch(); break;
       case 'focus': g.focus(v); break;
       case 'contract': g.startContract(v); break;
@@ -489,6 +489,53 @@ export class UI {
       else if (e.key === 'Escape') this.closeModal();
     });
   }
-  zoom(f: number) { if (this.renderHangar) this.hangar.tDist = Math.min(60, Math.max(8, this.hangar.tDist * f)); else this.cam.zoom(f); }
+  // ---------- zoom: one continuous dive from space to the hangar floor and back ----------
+  private push = 0; // wheel travel past a limit, before it turns into a level change
+  private busy = false;
+  zoom(f: number) {
+    if (this.busy) return;
+    if (this.renderHangar) {
+      const h = this.hangar;
+      if (f > 1 && h.tDist >= 59.9) { this.push += Math.log(f); if (this.push > 0.45) this.exitHangar(); return; }
+      this.push = 0;
+      h.tDist = Math.min(60, Math.max(8, h.tDist * f));
+      return;
+    }
+    const g = this.game, cam = this.cam, id = cam.focusId;
+    if (f < 1 && !cam.moving && this.scr === 'main' && g.ground) {
+      // Zooming into Earth dives to your base; zooming into the base enters the hangar.
+      if (id === 'earth' && Math.exp(cam.tLogD) * f < R_EARTH * 1.9) { this.push = 0; g.focus('base', 2600); return; }
+      const info = g.focusInfo('base');
+      if (id === 'base' && info && cam.tLogD <= Math.log(info.minKm) + 1e-3 && g.layer === 1) {
+        this.push += -Math.log(f);
+        if (this.push > 0.45) this.enterHangar();
+        return;
+      }
+    }
+    this.push = 0;
+    cam.zoom(f);
+  }
+  /** Fade through the infographic blue while swapping views. */
+  private fade(swap: () => void) {
+    const el = document.getElementById('fade');
+    this.busy = true;
+    el?.classList.add('on');
+    setTimeout(() => { swap(); this.regions = {}; this.tick(0, true); el?.classList.remove('on'); setTimeout(() => { this.busy = false; }, 250); }, 260);
+  }
+  enterHangar() {
+    if (this.hangarOpen) return;
+    this.push = 0;
+    this.fade(() => { this.hangarOpen = true; this.hangar.dist = 70; this.hangar.tDist = 30; });
+  }
+  exitHangar() {
+    if (!this.hangarOpen) return;
+    this.push = 0;
+    this.fade(() => {
+      this.hangarOpen = false;
+      if (this.cam.focusId !== 'base') this.game.focus('base');
+      this.cam.setDist(14, true);
+      this.cam.setDist(220);
+    });
+  }
 }
 export { HAVEN, bodyHelioPos };

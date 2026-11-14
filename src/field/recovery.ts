@@ -294,7 +294,7 @@ export class Recovery {
   speedK() { return (this.has('engine') ? 1.25 : 1) * (this.has('engine2') ? 1.2 : 1); }
   private clamp(p: XY): XY { const h = this.W.region.half; return { x: Math.max(-h, Math.min(h, p.x)), y: Math.max(-h, Math.min(h, p.y)) }; }
   private pay(n: number, _why: string) { if (this.s.credits < n) return false; this.s.credits -= n; this.s.spent += n; return true; }
-  private log(text: string, kind: string, t: number) { this.s.log.unshift({ t, text, kind }); if (this.s.log.length > 40) this.s.log.pop(); this.msgs.push({ text, kind: kind as any }); }
+  private log(text: string, kind: RecMsg['kind'], t: number) { this.s.log.unshift({ t, text, kind }); if (this.s.log.length > 40) this.s.log.pop(); this.msgs.push({ text, kind }); }
 
   // ---------- simulation
   /** Advance the world to time t in fixed steps. Rivals act only on what the tracking network shows. */

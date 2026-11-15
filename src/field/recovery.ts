@@ -61,6 +61,8 @@ export const REC_LOCS: Record<LocId, RecLoc> = {
   },
 };
 export const REC_GOAL = 60000;
+/** How far below zero the bank lets a recovery company go for sorties and fuel. */
+export const REC_CREDIT = 8000;
 
 // ---------------------------------------------------------------- events
 export type ObjKind = 'capsule' | 'stage' | 'debris';
@@ -148,7 +150,7 @@ export class RecWorld {
     const r = rng(hash('rec-tut:' + company + this.L.id));
     // Far enough out that port is clear of its hazard area, close enough to reach well before impact.
     const L = this.L, zk = 0.35, d = (L.hazMin + L.zone0 * zk) * 1.3;
-    const e = this.make('tut-' + Math.round(t0), r, t0 + 4, true, d, d);
+    const e = this.make('tut-' + Math.round(t0), r, t0 - 1, true, d, d);
     const a = r() * Math.PI * 2; e.P = { x: this.port.x + d * Math.cos(a), y: this.port.y + d * Math.sin(a) };
     if (L.id === 'earth') e.P = { x: this.port.x + d * Math.cos(a * 0.3), y: this.port.y + d * Math.sin(a * 0.3) }; // out to sea
     e.drift = this.drift(e.P);
@@ -269,7 +271,7 @@ export class Recovery {
     if (c.mode === 'tow') return c.name + ' is towing a recovery home.';
     if (this.s.claims[e.id]) return 'Someone already has it.';
     if (e.mass > c.crane) return 'Too heavy: ' + e.mass + ' t. Your crane lifts ' + c.crane + ' t.';
-    if (c.mode === 'port') { if (!this.pay(this.L.perSortie, 'sortie')) return 'Not enough money for a sortie (' + this.L.perSortie + ').'; }
+    if (c.mode === 'port') { if (!this.pay(this.L.perSortie, 'sortie')) return 'A sortie (¤' + this.L.perSortie + ') would take you past your credit line.'; }
     const pr = this.pred(e, t);
     c.ev = e.id; c.mode = t >= e.tI ? 'chase' : 'out'; c.lastRetarget = t;
     // No side chosen: the safe default, the near end of the short axis (the error runs along the track).
@@ -302,7 +304,7 @@ export class Recovery {
   }
   speedK() { return (this.has('engine') ? 1.25 : 1) * (this.has('engine2') ? 1.2 : 1); }
   private clamp(p: XY): XY { const h = this.W.region.half; return { x: Math.max(-h, Math.min(h, p.x)), y: Math.max(-h, Math.min(h, p.y)) }; }
-  private pay(n: number, _why: string) { if (this.s.credits < n) return false; this.s.credits -= n; this.s.spent += n; return true; }
+  private pay(n: number, _why: string) { if (this.s.credits - n < -REC_CREDIT) return false; this.s.credits -= n; this.s.spent += n; return true; }
   private log(text: string, kind: RecMsg['kind'], t: number) { this.s.log.unshift({ t, text, kind }); if (this.s.log.length > 40) this.s.log.pop(); this.msgs.push({ text, kind }); }
 
   // ---------- simulation

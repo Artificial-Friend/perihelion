@@ -90,4 +90,57 @@ for (const loc of ['mars', 'earth'] as const) {
   const H3 = new Hopper(JSON.parse(saved)); H3.tick(tH + 600);
   ok(JSON.stringify(H3.s) === JSON.stringify(H2.s), loc + ': the same reload gives the same result');
 }
+// No soft-lock: crash the very first hop, repair on credit, and fly again.
+for (const loc of ['mars', 'earth'] as const) {
+  const s = newHopSave(loc, 'Crash', T0), H = new Hopper(s), first = H.firstOffer()!;
+  H.accept(first.id, T0);
+  const g = H.bestGamma(first.to), arc = H.plan(first.to, g, null)!;
+  // Burn propellant down so the hop runs dry before landing.
+  s.prop = Math.max(0, arc.b.m0 - H.spec().dry - first.kg - (arc.b.propHandoff + 50));
+  H.launch(first.to, g, s.prop, T0); H.tick(s.flight!.tHandoff + 60);
+  ok(H.lastResult?.d.kind === 'crash' && s.condition === 0, loc + ': a dry hop crashes and wrecks the hopper');
+  ok(H.repair(T0 + 900) === null && s.condition === 1, loc + ': repairs go through even below zero (credits ' + Math.round(s.credits) + ')');
+  const j = H.board(T0 + 900)[0] || H.board(T0 + 1800)[0];
+  const tt = H.board(T0 + 900)[0] ? T0 + 900 : T0 + 1800;
+  H.accept(j.id, tt);
+  const near = [...H.W.sites].filter(x => x.id !== s.site).sort((a, b) => H.W.km(s.site, a.id) - H.W.km(s.site, b.id))[0];
+  const err = H.launch(near.id, H.bestGamma(near.id), null, tt);
+  ok(err === null, loc + ': can still launch after the crash, on credit (' + (err || 'launched') + ', credits ' + Math.round(s.credits) + ')');
+}
+// An idle player at hand-off: the computer has the landing until a control is touched.
+for (const loc of ['mars', 'earth'] as const) {
+  const s = newHopSave(loc, 'Idle', T0), H = new Hopper(s), first = H.firstOffer()!;
+  H.accept(first.id, T0); H.launch(first.to, H.bestGamma(first.to), null, T0);
+  ok(s.flight!.manual === false, loc + ': the computer starts the descent');
+  const tH = s.flight!.tHandoff;
+  for (let k = 0; k < 120 && s.flight; k++) H.landTick({ throttle: 0, tilt: 0 }, 60, tH + k); // controls ignored until taken
+  ok(H.lastResult?.d.kind === 'pad', loc + ': nobody touches anything, it still lands on the pad');
+}
+// A human at a keyboard: reacts 10 times a second, throttle only ramps at 1.5/s, H snaps to hover,
+// tilt is on or off. Must land on the pad on both planets and beat the computer on propellant.
+import { autoLand } from '../../src/field/flight';
+for (const loc of ['mars', 'earth'] as const) {
+  const s = newHopSave(loc, 'Keys', T0), H = new Hopper(s), first = H.firstOffer()!;
+  H.accept(first.id, T0); H.launch(first.to, H.bestGamma(first.to), null, T0);
+  const b = H.body(), h = H.spec(), hand = s.flight!.handoff;
+  let st: LandState = { ...hand }, set = 0, up = false, dn = false, tl = 0, k = 0;
+  const hover = () => (st.mass + st.prop) * b.g / h.thrust;
+  while (!st.done) {
+    if (k % 6 === 0) { // the player looks at the instruments ten times a second
+      const net = h.thrust / (st.mass + st.prop) - b.g;
+      const vzRef = -Math.max(1.2, Math.sqrt(2 * 0.5 * net * Math.max(0, st.z - 10)));
+      const err = st.vz - vzRef;
+      if (Math.abs(err) < 1.5 && Math.abs(set - hover()) > 0.15) { set = hover(); up = dn = false; } // tap H
+      else { up = err < -1.0; dn = err > 1.0; }
+      const lim = Math.min(18, 0.18 * st.z + 0.3), vxRef = Math.max(-lim, Math.min(lim, -0.08 * st.x)), dv = vxRef - st.vx;
+      tl = st.z < 5 ? (Math.abs(st.ang) > 0.03 ? -Math.sign(st.ang) : 0) : dv > 0.8 && st.ang < 0.25 ? 1 : dv < -0.8 && st.ang > -0.25 ? -1 : Math.abs(st.ang) > 0.05 ? -Math.sign(st.ang) : 0;
+    }
+    if (up) set = Math.min(1, set + 1.5 / 60); if (dn) set = Math.max(0, set - 1.5 / 60);
+    st = landStep(b, h, st, { throttle: set, tilt: tl }); k++;
+  }
+  const comp = autoLand(b, h, hand);
+  console.log('     ' + loc + ' keyboard landing:', st.done!.kind, 'vz', st.done!.vz.toFixed(2), 'x', st.done!.x.toFixed(1), 'used', (hand.prop - st.prop).toFixed(0), 'kg vs computer', (hand.prop - comp.prop).toFixed(0), 'kg in', st.t.toFixed(0), 's');
+  ok(st.done!.kind === 'pad', loc + ': a keyboard pilot can land on the pad');
+  ok(st.prop > comp.prop, loc + ': and use less propellant than the computer');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed'); process.exit(fails ? 1 : 0);

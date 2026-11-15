@@ -1,7 +1,7 @@
 // Recovery race: the map layer and the panels.
 import { esc, money, fmtClock } from '../game/util';
 import { XY, dist } from './world';
-import { Recovery, RecEvent, Crew, predict, objectAt, edgePoint, edgeAngle, insideEllipse, trackAxes, REC_GOAL } from './recovery';
+import { Recovery, RecEvent, Crew, objectAt, edgePoint, edgeAngle, insideEllipse, trackAxes, REC_GOAL, REC_CREDIT } from './recovery';
 import { MapView, COL, label, chevron, ellipsePath } from './mapgfx';
 import type { FieldUI } from './ui';
 
@@ -176,7 +176,7 @@ export class RecView {
         const def = L.rivals.find(r => r.id === c.id)!, e = c.ev ? R.W.shared(t - 3600, t).find(x => x.id === c.ev) : null;
         const wins = Object.values(s.claims).filter(x => x.by === c.id).length;
         return `<div class="it rv"><div><b style="color:${c.col}">${esc(c.name)}</b><span class="s">${esc(def.blurb)}</span><span class="s">${MODE_WORD[c.mode]}${e ? ' · ' + esc(e.name) : ''}</span></div><span class="num s">${wins} won</span><span></span></div>`;
-      }).join('') + `</div><p class="hint" style="margin-top:8px">You: ${s.wins} won, ${s.losses} lost to rivals. Running costs: ${money(L.perSortie)} per sortie, ${money(L.perKm)} per km.</p>`;
+      }).join('') + `</div><p class="hint" style="margin-top:8px">You: ${s.wins} won, ${s.losses} lost to rivals. Running costs: ${money(L.perSortie)} per sortie, ${money(L.perKm)} per km. The bank lets you go down to −${money(REC_CREDIT).slice(1)}.</p>`;
     } else if (this.tab === 'upg') {
       body = `<div class="list">` + L.upgrades.map(u => {
         const have = R.has(u.id), lock = u.needs && !R.has(u.needs);

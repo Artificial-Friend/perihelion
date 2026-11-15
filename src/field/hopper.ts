@@ -17,6 +17,8 @@ export interface HopLoc {
   pay: (km: number, kg: number) => number;
   /** Cost to put a crashed or damaged hopper back in service (per unit of lost condition). */
   repair: number;
+  /** How far the bank lets the company go below zero for propellant and repairs. */
+  credit: number;
   rivals: { id: string; name: string; col: string }[];
   /** The last upgrade that opens Stage 2 if the hopper still can't reach orbit on its own. */
   orbital: HopUpgrade | null;
@@ -62,7 +64,7 @@ export const HOP_LOCS: Record<LocId, HopLoc> = {
     ],
     price: { jez: 230, sei: 260, bel: 250, har: 130, nil: 170, tor: 280, syr: 300, isi: 260, utg: 210, lib: 380 },
     pay: (km, kg) => 1400 + 16 * km + 0.6 * kg,
-    repair: 14000,
+    repair: 14000, credit: 20000,
     rivals: [{ id: 'red', name: 'Redline Couriers', col: '#ff8a5c' }, { id: 'pho', name: 'Phobos Express', col: '#d68cff' }],
     orbital: null,
   },
@@ -79,7 +81,7 @@ export const HOP_LOCS: Record<LocId, HopLoc> = {
     ],
     price: { cape: 150, orl: 175, seb: 165, tpa: 170, jax: 160, plat: 95, fpo: 190, mia: 185, nas: 240, kw: 260 },
     pay: (km, kg) => 3000 + 30 * km + 0.5 * kg,
-    repair: 30000,
+    repair: 30000, credit: 45000,
     rivals: [{ id: 'gulf', name: 'Gulfstream Hop', col: '#ff8a5c' }, { id: 'bah', name: 'Bahama Air Freight', col: '#d68cff' }],
     orbital: { id: 'stage', name: 'Upper stage', blurb: 'A second stage on top: the only way to orbit from Earth', cost: 60000, apply: () => {}, needs: 'engine' },
   },
@@ -285,7 +287,7 @@ export class Hopper {
     const p = this.plan(to, gammaDeg, propLoad);
     if (!p) return 'No arc reaches that far.';
     if (this.manifestKg() > this.spec().cargoCap) return 'Over the cargo limit.';
-    if (s.credits < p.cost) return 'Not enough money for that much propellant (¤' + Math.round(p.cost).toLocaleString('en-US') + ').';
+    if (p.cost > 0 && s.credits - p.cost < -this.L.credit) return 'That propellant (¤' + Math.round(p.cost).toLocaleString('en-US') + ') would take you past your credit line.';
     s.credits -= p.cost; s.spent += p.cost; s.prop = p.b.m0 - this.spec().dry - this.manifestKg();
     const b = p.b, a = p.arc, full = this.W.km(s.site, to) * 1000;
     const tUp = Math.min(a.tof * 0.3, a.v0 / Math.max(1, this.spec().thrust / b.m0));
@@ -294,7 +296,7 @@ export class Hopper {
       tof: a.tof, v0: a.v0, apogee: a.apogee, vArr: a.vArr, gArr: a.gArr, range: full,
       tUp, tHandoff: t + b.tHandoff, propHandoff: b.propHandoff, handoff: b.handoff,
       path: solveArc(this.body(), this.spec().beta, this.W.elev(s.site), this.W.elev(to), full, a.gamma, true).path,
-      manual: true, result: null,
+      manual: false, result: null,
     };
     s.prop = Math.max(0, b.propHandoff);
     return null;
@@ -371,6 +373,8 @@ export class Hopper {
     this.lastResult = { d, earned, auto, dest };
   }
   lastResult: { d: Touchdown; earned: number; auto: boolean; dest: string } | null = null;
+  /** Can this much be spent without passing the credit line? */
+  canSpend(n: number) { return n <= 0 || this.s.credits - n >= -this.L.credit; }
   repairCost() { return Math.round((1 - this.s.condition) * this.L.repair / 100) * 100; }
   repair(t: number): string | null {
     this.tick(t);

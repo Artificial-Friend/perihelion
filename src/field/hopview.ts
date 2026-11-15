@@ -94,17 +94,24 @@ export class HopView {
     if (this.down) this.thr = Math.max(0, this.thr - rate * dt);
     return { throttle: this.thr, tilt: (this.tiltR ? 1 : 0) - (this.tiltL ? 1 : 0) };
   }
+  /** The first touch of a flight control takes the landing from the computer, at the throttle it was using. */
+  take(on: boolean) {
+    const fl = this.H.s.flight, st = this.H.liveLanding();
+    if (!on || !fl || fl.manual) return;
+    if (st) this.thr = st.thr;
+    this.H.setManual(true);
+  }
   onKey(k: string, down: boolean): boolean {
     if (!this.landingOpen) return false;
     switch (k) {
-      case 'w': case 'arrowup': this.up = down; return true;
-      case 's': case 'arrowdown': this.down = down; return true;
-      case 'a': case 'arrowleft': this.tiltL = down; return true;
-      case 'd': case 'arrowright': this.tiltR = down; return true;
-      case ' ': case 'z': if (down) this.thr = 0; return true;
-      case 'x': if (down) this.thr = 1; return true;
-      case 'h': if (down) { const st = this.H.liveLanding(); if (st) this.thr = Math.min(1, (st.mass + st.prop) * this.H.body().g / this.H.spec().thrust); } return true;
-      case 'c': if (down) this.H.setManual(!(this.H.s.flight?.manual ?? true)); return true;
+      case 'w': case 'arrowup': this.take(down); this.up = down; return true;
+      case 's': case 'arrowdown': this.take(down); this.down = down; return true;
+      case 'a': case 'arrowleft': this.take(down); this.tiltL = down; return true;
+      case 'd': case 'arrowright': this.take(down); this.tiltR = down; return true;
+      case ' ': case 'z': if (down) { this.take(true); this.thr = 0; } return true;
+      case 'x': if (down) { this.take(true); this.thr = 1; } return true;
+      case 'h': if (down) { this.take(true); const st = this.H.liveLanding(); if (st) this.thr = Math.min(1, (st.mass + st.prop) * this.H.body().g / this.H.spec().thrust); } return true;
+      case 'c': if (down) { if (this.H.s.flight?.manual) this.H.setManual(false); else this.take(true); } return true;
     }
     return false;
   }
@@ -219,7 +226,9 @@ export class HopView {
         <span>Cargo limit</span><b class="num">${(h.cargoCap / 1000).toFixed(0)} t</b>
         <span>Legs survive</span><b class="num">${h.legs.toFixed(1)} m/s</b>
         <span>Δv, empty, full tanks</span><b class="num">${(dv / 1000).toFixed(2)} km/s</b>
-        <span>Condition</span><b class="num ${s.condition < 0.5 ? 'bad' : s.condition < 1 ? 'warn' : 'ok'}">${Math.round(s.condition * 100)}%</b></div>
+        <span>Condition</span><b class="num ${s.condition < 0.5 ? 'bad' : s.condition < 1 ? 'warn' : 'ok'}">${Math.round(s.condition * 100)}%</b>
+        <span>Credit line</span><b class="num">down to −${money(H.L.credit).slice(1)}</b></div>
+        ${s.credits < -H.L.credit * 0.7 ? '<p class="hint warn">Deep in debt. Short, cheap hops pay it back; or start the company over from the ? button.</p>' : ''}
         ${s.condition < 1 ? `<button class="btn ${s.condition < 0.5 ? 'primary' : ''} wide" data-act="hop-repair"${s.flight ? ' disabled' : ''}>Repair · ${money(H.repairCost())}</button>` : ''}
         <div class="k" style="margin-top:14px">Upgrades</div><div class="list">` + allUp.map(u => {
           const have = !!s.upg[u.id], lock = u.needs && !s.upg[u.needs];
@@ -273,8 +282,8 @@ export class HopView {
         <p class="hint ${verdict[0]}">${verdict[1]}</p>
       </div>
       <div class="pgo"><div class="kv tight"><span>Cargo for ${esc(to.name)}</span><b class="num">${carrying.length} job${carrying.length === 1 ? '' : 's'} · ${money(pay)}</b>${other.length ? `<span>Also aboard</span><b class="num">${(other.reduce((a, j) => a + j.kg, 0) / 1000).toFixed(1)} t for elsewhere</b>` : ''}<span>Buy propellant</span><b class="num">${(p.refuel / 1000).toFixed(1)} t · ${money(p.cost)}</b></div>
-        <button class="btn primary big wide" data-act="hop-launch"${s.condition < 0.5 || s.credits < p.cost ? ' disabled' : ''}>Launch</button>
-        ${s.credits < p.cost ? '<p class="hint bad">Not enough money for that propellant.</p>' : s.condition < 0.5 ? '<p class="hint bad">Needs repairs first.</p>' : carrying.length ? '' : '<p class="hint">No cargo for this pad: a repositioning hop.</p>'}</div></div></div>`;
+        <button class="btn primary big wide" data-act="hop-launch"${s.condition < 0.5 || !H.canSpend(p.cost) ? ' disabled' : ''}>Launch</button>
+        ${!H.canSpend(p.cost) ? '<p class="hint bad">That propellant would take you past your credit line. Load less, or earn first.</p>' : s.credits - p.cost < 0 ? '<p class="hint warn">Bought on credit: you will be below zero.</p>' : s.condition < 0.5 ? '<p class="hint bad">Needs repairs first.</p>' : carrying.length ? '' : '<p class="hint">No cargo for this pad: a repositioning hop.</p>'}</div></div></div>`;
   }
   private profileSVG() {
     const H = this.H, W = 330, Hh = 128, path = this.profile;
@@ -307,8 +316,8 @@ export class HopView {
       <div class="pgrid"><div class="prof">${this.flightProfileSVG(w.k)}</div>
       <div class="pctl"><div class="kv tight"><span>Hand-off in</span><b class="num big">${t < fl.tHandoff ? fmtClock(fl.tHandoff - t) : 'now'}</b><span>Height</span><b class="num">${(w.h / 1000).toFixed(1)} km</b><span>Cargo</span><b class="num">${(fl.cargo / 1000).toFixed(1)} t</b><span>Propellant at hand-off</span><b class="num">${(fl.propHandoff / 1000).toFixed(2)} t</b></div>
       <div class="bar"><i style="width:${(prog * 100).toFixed(1)}%"></i></div></div>
-      <div class="pgo"><p class="hint">At ${HANDOFF_ALT.toLocaleString('en-US')} m the computer hands the descent to you.</p>
-      <div class="switch${fl.manual ? '' : ' on'}" data-act="hop-auto" role="switch" aria-checked="${!fl.manual}"><i></i>Let the computer land it</div></div></div></div>`;
+      <div class="pgo"><p class="hint">The landing starts at ${HANDOFF_ALT.toLocaleString('en-US')} m.</p>
+      <p class="hint">The computer starts the descent. Press any flight control (W, A, S, D, H) to take over; the computer lands safely but burns more propellant.</p></div></div></div>`;
   }
   private flightProfileSVG(k: number) {
     const fl = this.H.s.flight!, W = 330, Hh = 128, path = fl.path;
@@ -342,12 +351,12 @@ export class HopView {
     const vxc = Math.abs(st.vx) <= 2 ? 'ok' : Math.abs(st.vx) <= 5 ? 'warn' : 'bad';
     const xc = Math.abs(st.x) <= PAD_HALF ? 'ok' : Math.abs(st.x) <= NEAR ? 'warn' : 'bad';
     const twr = h.thrust / (m * H.body().g);
-    return `<div class="lhud"><div class="lk">Landing · ${esc(this.site(fl.to).name)} · ${fl.manual ? 'you have control' : 'the computer is flying'}</div>
+    return `<div class="lhud"><div class="lk">Landing · ${esc(this.site(fl.to).name)} · ${fl.manual ? 'you have control' : 'the computer is flying · press any control to take over'}</div>
       <div class="kv"><span>Height</span><b class="num big">${st.z.toFixed(0)} m</b><span>Falling</span><b class="num big ${vzc}">${(-st.vz).toFixed(1)} m/s</b><span>Sideways</span><b class="num ${vxc}">${st.vx.toFixed(1)} m/s</b><span>From pad</span><b class="num ${xc}">${st.x >= 0 ? '+' : '−'}${Math.abs(st.x).toFixed(0)} m</b>
       <span>Throttle</span><b class="num">${Math.round(st.thr * 100)}%</b><span>Tilt</span><b class="num">${(st.ang * 180 / Math.PI).toFixed(0)}°</b><span>Propellant</span><b class="num ${burn < 6 ? 'bad' : burn < 15 ? 'warn' : ''}">${st.prop.toFixed(0)} kg · ${burn.toFixed(0)} s</b><span>Thrust/weight</span><b class="num">${twr.toFixed(2)}</b></div>
       <p class="hint">Touch down under ${legs.toFixed(1)} m/s, upright, on the ${PAD_HALF * 2} m pad.</p>
       <div class="lkeys"><span><kbd>W</kbd><kbd>S</kbd> throttle</span><span><kbd>A</kbd><kbd>D</kbd> tilt</span><span><kbd>H</kbd> hover · <kbd>X</kbd> full · <kbd>Space</kbd> cut</span><span><kbd>C</kbd> computer</span></div>
-      <button class="btn wide${fl.manual ? '' : ' on'}" data-act="hop-auto">${fl.manual ? 'Hand over to the computer' : 'Take back control'}</button></div>
+      <button class="btn wide${fl.manual ? '' : ' on'}" data-act="hop-auto">${fl.manual ? 'Hand over to the computer' : 'Take control'}</button></div>
       <div class="ltouch"><div class="tl"><button class="tb" data-hold="tl" aria-label="Tilt left">◀</button><button class="tb" data-hold="tr" aria-label="Tilt right">▶</button></div><div class="tcol"><button class="tb" data-hold="up" aria-label="More throttle">▲</button><button class="tb" data-hold="dn" aria-label="Less throttle">▼</button></div></div>`;
   }
   lastResultCache: any = null;
@@ -412,7 +421,7 @@ export class HopView {
   private bindTouch(host: HTMLElement) {
     if (this.touchBound === host) return;
     this.touchBound = host;
-    const set = (k: string, on: boolean) => { if (k === 'up') this.up = on; if (k === 'dn') this.down = on; if (k === 'tl') this.tiltL = on; if (k === 'tr') this.tiltR = on; };
+    const set = (k: string, on: boolean) => { this.take(on); if (k === 'up') this.up = on; if (k === 'dn') this.down = on; if (k === 'tl') this.tiltL = on; if (k === 'tr') this.tiltR = on; };
     host.addEventListener('pointerdown', e => { const b = (e.target as HTMLElement).closest('[data-hold]') as HTMLElement | null; if (b) { e.preventDefault(); set(b.dataset.hold!, true); b.setPointerCapture(e.pointerId); } });
     const off = (e: PointerEvent) => { const b = (e.target as HTMLElement).closest('[data-hold]') as HTMLElement | null; if (b) set(b.dataset.hold!, false); };
     host.addEventListener('pointerup', off); host.addEventListener('pointercancel', off);
@@ -441,7 +450,7 @@ export class HopView {
         this.f.host.regions['f-bottom'] = '';
         return true;
       }
-      case 'hop-auto': H.setManual(!(H.s.flight?.manual ?? true)); return true;
+      case 'hop-auto': { const m = !(H.s.flight?.manual ?? false); if (m) this.take(true); else H.setManual(false); return true; }
       case 'hop-result': this.showResult = false; this.landingOpen = false; this.lastResultCache = null; H.lastResult = null; this.tab = 'board'; { const w = document.getElementById('f-landwrap'); if (w) w.hidden = true; } return true;
       case 'hop-repair': err(H.repair(t)); return true;
       case 'hop-buy': err(H.buy(v, t)); this.planKey = ''; this.reachKey = ''; return true;

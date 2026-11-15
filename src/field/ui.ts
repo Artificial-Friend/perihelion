@@ -140,17 +140,22 @@ export class FieldUI {
         <li><b>Where to wait.</b> The tracking error runs mostly <i>along</i> the ground track (violet arrow). The short sides of the ellipse are the safe bet; an end of the long axis is a gamble that pays when the object lands near that end.</li>
         <li><b>At impact</b> the hazard lifts and every crew dashes in. The closest wins and tows it home to ${esc(L.port)}.</li>
         <li><b>Your first job</b> is a contract capsule only you are tracking. Select it, then send your ${L.craft}.</li></ul>
-        <div class="mfoot"><button class="btn primary big" data-act="close">Start</button></div>`);
+        <div class="mfoot"><button class="btn primary big" data-act="close">Start</button>${this.restartBtn()}</div>`);
     } else {
       const L = this.hop!.L;
       this.host.modal(`<div class="k">${MODES.hop.name} · ${this.loc === 'mars' ? 'Mars' : 'Earth'}</div><h2>Every hop is a rocket launch</h2>
         <p>${MODES.hop.blurb}</p>
         <ul class="fbul"><li><b>Board</b>: jobs at the pad you are on. Rival couriers take them if you wait too long.</li>
         <li><b>Plan</b>: pick a destination on the map. A lower arc is quicker; the cheapest arc is usually 30–40°. Load more propellant than the plan needs and you have margin to land; load less and you carry more cargo.</li>
-        <li><b>Landing</b>: at ${'1,500'} m the computer hands you the descent. W/S or ↑/↓ for throttle (H sets hover), A/D or ←/→ to tilt. Touch down under ${L.base.legs} m/s on the pad. The computer can land for you, but it burns more propellant.</li>
+        <li><b>Landing</b>: at 1,500 m the computer starts the descent. Press any control to take over: W/S or ↑/↓ for throttle (H sets hover), A/D or ←/→ to tilt. Touch down under ${L.base.legs} m/s on the pad. The computer lands safely, but burns more propellant; on a thin load only you can get it down.</li>
         <li><b>Your first job</b> is waiting on the board: a short hop, yours alone.</li></ul>
-        <div class="mfoot"><button class="btn primary big" data-act="close">Start</button></div>`);
+        <div class="mfoot"><button class="btn primary big" data-act="close">Start</button>${this.restartBtn()}</div>`);
     }
+  }
+  /** Starting over is always possible, outside the dev tray, behind a second click. */
+  restartBtn() {
+    const s = this.rec?.s || this.hop?.s;
+    return s && (s.earned > 0 || s.spent > 0) ? `<button class="btn" data-act="field-restart">Start this company over</button>` : '';
   }
 
   screenHTML() {
@@ -229,7 +234,11 @@ export class FieldUI {
       case 'field-help': this.intro(); return true;
       case 'field-skip': this.skew += +v; setClockSkew(this.skew); return true;
       case 'field-money': { const s = this.rec?.s || this.hop?.s; if (s) s.credits += 20000; return true; }
+      case 'field-restart':
+        this.host.modal(`<h2>Start over?</h2><p>This deletes ${esc((this.rec?.s || this.hop?.s)!.company)} in this browser: money, upgrades and history. The world itself carries on.</p><div class="mfoot"><button class="btn warn big" data-act="field-reset">Yes, start over</button><button class="btn big" data-act="close">Keep playing</button></div>`);
+        return true;
       case 'field-reset': {
+        this.host.closeModal();
         const m = this.mode!, l = this.loc;
         if (m === 'rec') delete this.saves.rec[l]; else delete this.saves.hop[l];
         delete this.saves.seen[m + ':' + l];

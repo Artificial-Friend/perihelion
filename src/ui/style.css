@@ -385,10 +385,15 @@ kbd { font: 600 11px var(--f-head); border: 1px solid var(--line-2); padding: 0 
   .fgoal { order: 9; flex-basis: 100%; max-width: none; }
   .fpanel { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 42%; }
   .flegend { display: none; }
-  .fbottom { left: 8px; right: 8px; bottom: calc(42% + 16px); }
+  .fbottom { left: 8px; right: 8px; bottom: 8px; max-height: 42%; overflow: auto; z-index: 2; }
+  .fplan.empty { max-width: none; }
   .pgrid { grid-template-columns: 1fr; gap: 8px; }
   .pgrid .prof { display: none; }
-  .lhud { top: auto; bottom: 150px; left: 8px; right: 8px; width: auto; }
+  .lhud { top: auto; bottom: 150px; left: 8px; right: 8px; width: auto; padding: 8px 10px; }
+  .lhud .kv { grid-template-columns: auto 1fr auto 1fr; font-size: 12px; margin: 4px 0; }
+  .lhud .kv b.big { font-size: 14px; }
+  .lhud .lkeys, .lhud p.hint { display: none; }
+  .lhud .lk { font-size: 12px; }
 }
 /* The map redraws every frame; a backdrop blur over it costs a full re-blur per frame. Solid panels instead. */
 .screen.field .pane, .screen.field .lhud { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(7,19,40,.93); }

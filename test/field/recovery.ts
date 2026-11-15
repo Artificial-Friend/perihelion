@@ -96,5 +96,8 @@ for (const loc of ['earth', 'mars'] as const) {
   const d = dist(objectAt(heavy, heavy.tI), objectAt(heavy, heavy.tI + 600));
   ok(loc === 'earth' ? d > 0.1 : d === 0, 'drift after impact: ' + d.toFixed(2) + ' km in 10 min');
 }
+// No soft-lock in Recovery either: broke after losses, a sortie still goes out on credit.
+{ const s = newRecSave('mars', 'Broke', T0), R = new Recovery(s); s.credits = 100;
+  ok(R.send('c1', s.tut!.id, null, T0 + 5) === null, 'a sortie goes out on credit when nearly broke'); }
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

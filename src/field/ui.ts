@@ -147,7 +147,7 @@ export class FieldUI {
         <p>${MODES.hop.blurb}</p>
         <ul class="fbul"><li><b>Board</b>: jobs at the pad you are on. Rival couriers take them if you wait too long.</li>
         <li><b>Plan</b>: pick a destination on the map. A lower arc is quicker; the cheapest arc is usually 30–40°. Load more propellant than the plan needs and you have margin to land; load less and you carry more cargo.</li>
-        <li><b>Landing</b>: at ${'1,500'} m the computer hands you the descent. W/S or ↑/↓ for throttle, A/D or ←/→ to tilt. Touch down under ${L.base.legs} m/s on the pad. The computer can land for you, but it burns more propellant.</li>
+        <li><b>Landing</b>: at ${'1,500'} m the computer hands you the descent. W/S or ↑/↓ for throttle (H sets hover), A/D or ←/→ to tilt. Touch down under ${L.base.legs} m/s on the pad. The computer can land for you, but it burns more propellant.</li>
         <li><b>Your first job</b> is waiting on the board: a short hop, yours alone.</li></ul>
         <div class="mfoot"><button class="btn primary big" data-act="close">Start</button></div>`);
     }

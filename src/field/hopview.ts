@@ -89,7 +89,7 @@ export class HopView {
     }
   }
   controls(dt: number) {
-    const rate = 0.9;
+    const rate = 1.5;
     if (this.up) this.thr = Math.min(1, this.thr + rate * dt);
     if (this.down) this.thr = Math.max(0, this.thr - rate * dt);
     return { throttle: this.thr, tilt: (this.tiltR ? 1 : 0) - (this.tiltL ? 1 : 0) };
@@ -103,6 +103,7 @@ export class HopView {
       case 'd': case 'arrowright': this.tiltR = down; return true;
       case ' ': case 'z': if (down) this.thr = 0; return true;
       case 'x': if (down) this.thr = 1; return true;
+      case 'h': if (down) { const st = this.H.liveLanding(); if (st) this.thr = Math.min(1, (st.mass + st.prop) * this.H.body().g / this.H.spec().thrust); } return true;
       case 'c': if (down) this.H.setManual(!(this.H.s.flight?.manual ?? true)); return true;
     }
     return false;
@@ -345,7 +346,7 @@ export class HopView {
       <div class="kv"><span>Height</span><b class="num big">${st.z.toFixed(0)} m</b><span>Falling</span><b class="num big ${vzc}">${(-st.vz).toFixed(1)} m/s</b><span>Sideways</span><b class="num ${vxc}">${st.vx.toFixed(1)} m/s</b><span>From pad</span><b class="num ${xc}">${st.x >= 0 ? '+' : '−'}${Math.abs(st.x).toFixed(0)} m</b>
       <span>Throttle</span><b class="num">${Math.round(st.thr * 100)}%</b><span>Tilt</span><b class="num">${(st.ang * 180 / Math.PI).toFixed(0)}°</b><span>Propellant</span><b class="num ${burn < 6 ? 'bad' : burn < 15 ? 'warn' : ''}">${st.prop.toFixed(0)} kg · ${burn.toFixed(0)} s</b><span>Thrust/weight</span><b class="num">${twr.toFixed(2)}</b></div>
       <p class="hint">Touch down under ${legs.toFixed(1)} m/s, upright, on the ${PAD_HALF * 2} m pad.</p>
-      <div class="lkeys"><span><kbd>W</kbd><kbd>S</kbd> throttle</span><span><kbd>A</kbd><kbd>D</kbd> tilt</span><span><kbd>X</kbd> full · <kbd>Space</kbd> cut</span><span><kbd>C</kbd> computer</span></div>
+      <div class="lkeys"><span><kbd>W</kbd><kbd>S</kbd> throttle</span><span><kbd>A</kbd><kbd>D</kbd> tilt</span><span><kbd>H</kbd> hover · <kbd>X</kbd> full · <kbd>Space</kbd> cut</span><span><kbd>C</kbd> computer</span></div>
       <button class="btn wide${fl.manual ? '' : ' on'}" data-act="hop-auto">${fl.manual ? 'Hand over to the computer' : 'Take back control'}</button></div>
       <div class="ltouch"><div class="tl"><button class="tb" data-hold="tl" aria-label="Tilt left">◀</button><button class="tb" data-hold="tr" aria-label="Tilt right">▶</button></div><div class="tcol"><button class="tb" data-hold="up" aria-label="More throttle">▲</button><button class="tb" data-hold="dn" aria-label="Less throttle">▼</button></div></div>`;
   }

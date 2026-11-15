@@ -37,9 +37,13 @@ async function boot() {
   const loop = (now: number) => {
     const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
     last = now; P.frames = (P.frames || 0) + 1;
+    if (P.pause) { requestAnimationFrame(loop); return; } // tests: hold still for a screenshot
     try {
-      game.step(dt); cam.step(dt); game.render(dt); ui.tick(dt);
-      if (ui.renderHangar) ui.hangar.render(); else gfx.render();
+      if (ui.scr === 'field') { ui.field.frame(dt); ui.tick(dt); }
+      else {
+        game.step(dt); cam.step(dt); game.render(dt); ui.tick(dt);
+        if (ui.renderHangar) ui.hangar.render(); else gfx.render();
+      }
     } catch (e) { console.error(e); }
     requestAnimationFrame(loop);
   };

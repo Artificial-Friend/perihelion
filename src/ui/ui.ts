@@ -1,5 +1,6 @@
 // The interface: title, founding, and the main HUD whose panels change with the stage
 // (layer) you are looking at. Panels re-render a few times a second from game state.
+import { FieldUI } from '../field/ui';
 import * as THREE from 'three/webgpu';
 import { core, V, R_EARTH } from '../sim/core';
 import { fmtWorldDate } from '../sim/clock';
@@ -35,14 +36,19 @@ export class UI {
   selSlot: number | null = null;
   claimSite = 'l4';
   dev = new URLSearchParams(location.search).has('dev');
+  field: FieldUI;
 
   constructor(public game: Game, public world: WorldScene, public cam: FreeCamera, public gfx: Gfx) {
     this.hangar = new HangarView(gfx.renderer);
     this.hangar.resize(gfx.W, gfx.H);
     window.addEventListener('resize', () => this.hangar.resize(window.innerWidth, window.innerHeight));
     cam.setDist(26000, true);
+    this.field = new FieldUI(this);
     this.bindInput();
     this.set('title');
+    // Deep links straight into a field mode: #rec-mars, #hop-earth (add -dev for the dev tray).
+    const m = /^#(rec|hop)-(earth|mars)/.exec(location.hash);
+    if (m) this.field.enter(m[1] as any, m[2] as any);
     game.onNet = () => { if (this.scr === 'title') this.set('title'); };
   }
   get renderHangar() { return this.hangarOpen && this.scr === 'main'; }
@@ -62,6 +68,7 @@ export class UI {
   av(id: string) { const c = CREW.find(x => x.id === id)!; return `<span class="av" style="--c:${c.tint}"><i>${c.name.split(' ').map(w => w[0]).join('')}</i></span>`; }
 
   // ---------- screens ----------
+  v_field() { return this.field.screenHTML(); }
   v_title() {
     const co = this.game.company;
     return `<section class="screen title"><div class="scrim"></div><div class="wrap">
@@ -73,6 +80,7 @@ export class UI {
         <div class="devjump"><div class="k">Development build: start at any stage</div><div class="stg">
           ${STAGES.slice(0, 4).map(s => `<button style="--c:${s.col}" data-act="devjump" data-v="${s.n}"><b>${s.n}</b><span>${s.name}</span></button>`).join('')}
         </div><p class="hint" style="margin-top:6px;font-size:12px">Stage 5 (interstellar) is still in design.</p></div>
+        ${this.field.titleHTML()}
         <div class="meta"><span class="${this.gfx.backend === 'WebGPU' ? 'gpu' : ''}">${this.gfx.backend}</span><span data-b="online">…</span></div>
       </div></div>
       <div class="title-foot">Earth imagery: NASA Blue Marble and Black Marble. The world clock runs at real time for every commander.</div></section>`;
@@ -403,6 +411,10 @@ export class UI {
 
   // ---------- actions ----------
   act(a: string, v: string) {
+    if (/^(field|rec|hop)-/.test(a)) {
+      if (this.field.act(a, v) && this.scr === 'field') { this.regions = {}; this.field.panels(this.field.now()); }
+      return;
+    }
     const g = this.game, t = g.now(), gr = g.ground;
     switch (a) {
       case 'new': this.coName = ''; this.shipName = ''; this.set('found'); break;
@@ -488,6 +500,7 @@ export class UI {
     cv.addEventListener('wheel', e => { e.preventDefault(); this.zoom(Math.exp(e.deltaY * 0.0015)); }, { passive: false });
     window.addEventListener('keydown', e => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      if (this.scr === 'field') { if (e.key === 'Escape') this.closeModal(); return; }
       if (e.key === '+' || e.key === '=') this.zoom(0.7); else if (e.key === '-') this.zoom(1.4); else if (e.key === '?') this.act('help', '');
       else if (e.key === 'Escape') this.closeModal();
     });

@@ -14,7 +14,14 @@ const path = require('path');
   await page.goto('http://127.0.0.1:8766/' + (process.env.Q || ''));
   await page.waitForFunction(() => window.P && window.P.frames > 3, null, { timeout: 240000 });
   let n = 0;
-  const shot = async (name, wait = 1500) => { await page.waitForTimeout(wait); await page.screenshot({ path: path.join(out, String(++n).padStart(2, '0') + '-' + name + '.png'), timeout: 240000 }); console.log('shot', name); };
+  const shot = async (name, wait = 1500) => {
+    await page.waitForTimeout(wait);
+    await page.evaluate(() => { window.P.pause = true; });
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: path.join(out, String(++n).padStart(2, '0') + '-' + name + '.png'), timeout: 240000 });
+    await page.evaluate(() => { window.P.pause = false; });
+    console.log('shot', name);
+  };
   try { await script(page, shot); } catch (e) { console.log('SCRIPT ERROR', e.message); errs.push(e.message); }
   console.log('errors:', errs.length ? errs.slice(0, 12).join('\n') : 'none');
   await b.close();

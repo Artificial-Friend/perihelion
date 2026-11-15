@@ -22,7 +22,7 @@ export interface RecLoc {
   rivals: RivalDef[];
 }
 export interface Upgrade { id: string; name: string; blurb: string; cost: number; needs?: string }
-export interface RivalDef { id: string; name: string; col: string; style: 'bold' | 'tracker' | 'patient'; port: { lat: number; lon: number }; crane: number; speedK: number; blurb: string }
+export interface RivalDef { id: string; name: string; short: string; col: string; style: 'bold' | 'tracker' | 'patient'; port: { lat: number; lon: number }; crane: number; speedK: number; blurb: string }
 
 export const REC_LOCS: Record<LocId, RecLoc> = {
   earth: {
@@ -37,15 +37,15 @@ export const REC_LOCS: Record<LocId, RecLoc> = {
       { id: 'engine2', name: 'Turbine refit', blurb: 'Another 20% on top of the hydrofoils', cost: 30000, needs: 'engine' },
     ],
     rivals: [
-      { id: 'amr', name: 'Atlantic Marine Recovery', col: '#ff8a5c', style: 'bold', port: { lat: 28.41, lon: -80.6 }, crane: 8, speedK: 1.14, blurb: 'Leaves the moment anything is announced. Shares your port, with a faster boat.' },
-      { id: 'seb', name: 'Sebastian Salvage', col: '#e7c35a', style: 'patient', port: { lat: 27.86, lon: -80.45 }, crane: 20, speedK: 1.18, blurb: 'Waits until the zone is half its size, then holds off the short side of it. Heavy crane, fast boat.' },
-      { id: 'cap', name: 'Cape Hooks', col: '#d68cff', style: 'tracker', port: { lat: 28.62, lon: -80.6 }, crane: 8, speedK: 1.1, blurb: 'Leaves early and keeps to whichever side of the zone is nearest.' },
+      { id: 'amr', name: 'Atlantic Marine Recovery', short: 'AMR', col: '#ff8a5c', style: 'bold', port: { lat: 28.41, lon: -80.6 }, crane: 8, speedK: 1.14, blurb: 'Leaves the moment anything is announced. Shares your port, with a faster boat.' },
+      { id: 'seb', name: 'Sebastian Salvage', short: 'Sebastian', col: '#e7c35a', style: 'patient', port: { lat: 27.86, lon: -80.45 }, crane: 20, speedK: 1.18, blurb: 'Waits until the zone is half its size, then holds off the short side of it. Heavy crane, fast boat.' },
+      { id: 'cap', name: 'Cape Hooks', short: 'Cape Hooks', col: '#d68cff', style: 'tracker', port: { lat: 28.62, lon: -80.6 }, crane: 8, speedK: 1.1, blurb: 'Leaves early and keeps to whichever side of the zone is nearest.' },
     ],
   },
   mars: {
     id: 'mars', craft: 'rover', craftPlural: 'rovers', port: 'Jezero Port', portLL: { lat: 18.22, lon: 78.3 },
     speed: 100 / 3600, towFactor: 0.6, warn: 600, slot: 420, zone0: 9, capture: 0.25, near: 6, far: 32, hazMin: 1.3, resid: 0.22,
-    perKm: 22, perSortie: 300, lifetime: { capsule: 2400, stage: 2400, debris: 2400 },
+    perKm: 22, perSortie: 300, lifetime: { capsule: 900, stage: 900, debris: 900 },
     upgrades: [
       { id: 'engine', name: 'Fuel-cell drive', blurb: 'Rovers run 25% faster', cost: 14000 },
       { id: 'radar', name: 'Tracking radar', blurb: 'Your predicted zone shrinks sooner and sits closer to the truth', cost: 12000 },
@@ -54,9 +54,9 @@ export const REC_LOCS: Record<LocId, RecLoc> = {
       { id: 'engine2', name: 'Lightweight chassis', blurb: 'Another 20% on top of the new drive', cost: 30000, needs: 'engine' },
     ],
     rivals: [
-      { id: 'ares', name: 'Ares Logistics', col: '#ff8a5c', style: 'bold', port: { lat: 18.22, lon: 78.3 }, crane: 8, speedK: 1.14, blurb: 'Leaves the moment anything is announced. Shares your port, with a faster rover.' },
-      { id: 'coop', name: 'Jezero Co-op', col: '#e7c35a', style: 'patient', port: { lat: 18.29, lon: 78.76 }, crane: 20, speedK: 1.18, blurb: 'Waits until the zone is half its size, then holds off the short side of it. Heavy crane, fast rover.' },
-      { id: 'dust', name: 'Red Dust Salvage', col: '#d68cff', style: 'tracker', port: { lat: 17.91, lon: 78.6 }, crane: 8, speedK: 1.1, blurb: 'Leaves early and keeps to whichever side of the zone is nearest.' },
+      { id: 'ares', name: 'Ares Logistics', short: 'Ares', col: '#ff8a5c', style: 'bold', port: { lat: 18.22, lon: 78.3 }, crane: 8, speedK: 1.14, blurb: 'Leaves the moment anything is announced. Shares your port, with a faster rover.' },
+      { id: 'coop', name: 'Jezero Co-op', short: 'Co-op', col: '#e7c35a', style: 'patient', port: { lat: 18.29, lon: 78.76 }, crane: 20, speedK: 1.18, blurb: 'Waits until the zone is half its size, then holds off the short side of it. Heavy crane, fast rover.' },
+      { id: 'dust', name: 'Red Dust Salvage', short: 'Red Dust', col: '#d68cff', style: 'tracker', port: { lat: 17.91, lon: 78.6 }, crane: 8, speedK: 1.1, blurb: 'Leaves early and keeps to whichever side of the zone is nearest.' },
     ],
   },
 };
@@ -230,6 +230,15 @@ export function newRecSave(loc: LocId, company: string, t: number): RecSave {
     claims: {}, tut: W.tutorial(company, t), log: [], wins: 0, losses: 0,
   };
 }
+/** A new company joins a world already in motion: the rivals have been working for the last two hours. */
+export function foundRec(loc: LocId, company: string, t: number): RecSave {
+  const s = newRecSave(loc, company, t), tut = s.tut;
+  s.tut = null; s.t = t - 7200;
+  const R = new Recovery(s);
+  R.step(t);
+  s.tut = tut; s.log = []; R.msgs = [];
+  return s;
+}
 
 export class Recovery {
   L: RecLoc; W: RecWorld; msgs: RecMsg[] = [];
@@ -316,13 +325,15 @@ export class Recovery {
   private think(r: Crew, t: number) {
     const L = this.L;
     if (r.mode === 'port' || r.mode === 'back') {
-      const best = this.W.shared(t - 60, t).filter(e => t >= e.tA && t < e.tI && !this.s.claims[e.id] && e.mass <= r.crane)
+      const best = this.W.shared(t - 3600, t).filter(e => t >= e.tA && t < e.tI + e.life && !this.s.claims[e.id] && e.mass <= r.crane)
         .map(e => ({ e, pr: this.pred(e, t, false) }))
         .filter(({ e, pr }) => {
+          if (pr.landed) return dist(r.p, pr.p) / this.speed(r) < e.tI + e.life - t - 30; // already down: go if it can be reached
           if (r.style === 'patient' && pr.a > L.zone0 * 0.55 + L.capture) return false; // waits for a tighter zone
           return dist(r.p, pr.c) / this.speed(r) < e.tI - t + 150;
         })
-        .sort((a, b) => a.e.tI - b.e.tI)[0];
+        .sort((a, b) => (a.pr.landed ? 1e7 : 0) + a.e.tI - (b.pr.landed ? 1e7 : 0) - b.e.tI)[0]; // new arrivals first, leftovers when idle
+      if (best && best.pr.landed) { r.ev = best.e.id; r.mode = 'chase'; r.aim = null; r.dest = best.pr.p; r.lastRetarget = t; return; }
       if (best) {
         r.ev = best.e.id; r.mode = 'out'; r.lastRetarget = t;
         // Patient crews know the error runs along the track and wait at the near end of the short axis.

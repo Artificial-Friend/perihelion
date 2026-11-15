@@ -275,3 +275,120 @@ input[type=text], .field input { width: 100%; padding: 9px 11px; background: rgb
 /* The scale readout keeps a fixed width so the focus bar never shifts while zooming. */
 .focusbar .scale { min-width: 230px; }
 .focusbar .scale .num { display: inline-block; min-width: 180px; }
+
+/* ---------- Field operations (prototype modes) ---------- */
+.fieldops { margin-top: 22px; }
+.fcards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fcard { border: 1px solid var(--line); background: rgba(7,19,40,.6); padding: 10px; }
+.fcard .fh b { display: block; font: 600 16px/1.1 var(--f-head); }
+.fcard .fh span { display: block; font-size: 12px; color: var(--ink-2); margin: 2px 0 8px; }
+.flocs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.floc { text-align: left; padding: 7px 9px; border: 1px solid var(--line); background: rgba(5,12,26,.5); }
+.floc b { display: block; font: 600 14px/1.1 var(--f-head); }
+.floc span { font-size: 11.5px; color: var(--ink-2); }
+.floc.earth b { color: var(--blue); }
+.floc.mars b { color: #ff9d6e; }
+.floc:hover { border-color: var(--line-2); background: rgba(77,163,255,.12); }
+
+.screen.field #fmap { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
+.screen.field #fmap:active { cursor: grabbing; }
+.ftop { position: absolute; top: 0; left: 0; right: 0; height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 16px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(5,12,26,.92), rgba(5,12,26,0)); }
+.ftop > * { pointer-events: auto; }
+.fgoal { flex: 1; min-width: 160px; max-width: 420px; margin-left: auto; font-size: 12px; color: var(--ink-2); }
+.fgoal .gl { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.fgoal .gl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fgoal .gl b { color: var(--teal); font-weight: 600; white-space: nowrap; }
+.bar { height: 6px; background: rgba(106,168,255,.12); position: relative; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--teal); }
+.stat b.neg { color: var(--coral); }
+.fpanel { position: absolute; top: 72px; right: 16px; width: min(420px, 36vw); max-height: calc(100% - 88px); display: flex; flex-direction: column; }
+.fscroll { overflow: auto; scrollbar-width: thin; min-height: 0; padding-right: 2px; }
+.fpanel .tabs { flex: none; }
+.fsel { border: 1px solid rgba(255,107,90,.35); background: rgba(255,107,90,.05); padding: 10px 12px; }
+.fttl { font: 600 17px/1.2 var(--f-head); }
+.pay.big { font-size: 17px; }
+.it.ev { cursor: pointer; grid-template-columns: 1fr auto 0; }
+.it.ev:hover { background: rgba(77,163,255,.07); }
+.it.ev.sel { background: rgba(255,107,90,.08); }
+.it.slim { padding: 4px 0; }
+.it.rv .s + .s { margin-top: 2px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.chips { display: flex; gap: 4px; margin: 8px 0 2px; flex-wrap: wrap; }
+.chip { padding: 3px 9px; font-size: 12px; border: 1px solid var(--line); color: var(--ink-2); }
+.chip.on { border-color: var(--teal); color: var(--teal); background: rgba(47,214,181,.1); }
+.facts { margin-top: 8px; }
+.facts .row { margin-top: 6px; }
+.hint.warn, .warn { color: var(--amber); }
+.hint.bad, b.bad { color: var(--coral); }
+.hint.ok, b.ok { color: var(--teal); }
+.flog p { font-size: 12.5px; color: var(--ink-2); padding: 5px 0; border-bottom: 1px solid rgba(106,168,255,.1); }
+.flog p span { display: block; font-size: 11px; color: var(--dim); }
+.flog p.ok { color: var(--ink); } .flog p.bad { color: #ffc2ba; } .flog p.warn { color: #ffe2b0; }
+.fbul { margin: 10px 0 4px 18px; color: var(--ink-2); font-size: 13.5px; display: grid; gap: 6px; }
+.fbul b { color: var(--ink); }
+.flegend { position: absolute; left: 16px; bottom: 16px; padding: 10px 12px; font-size: 12px; color: var(--ink-2); display: grid; gap: 3px; max-width: 260px; }
+.flegend .hint { font-size: 11.5px; margin-top: 4px; }
+.lg { display: flex; align-items: center; gap: 8px; }
+.sw { width: 18px; height: 10px; flex: none; }
+.sw.haz { border: 1.5px dashed var(--coral); background: rgba(255,107,90,.12); border-radius: 50%; }
+.sw.trk { border-top: 2px dotted var(--violet); height: 0; }
+.sw.own { border: 1.5px solid var(--teal); background: rgba(47,214,181,.12); border-radius: 50%; }
+.sw.me { background: var(--teal); clip-path: polygon(0 0, 100% 50%, 0 100%, 30% 50%); }
+.sw.riv { background: #ff8a5c; clip-path: polygon(0 0, 100% 50%, 0 100%, 30% 50%); }
+.sw.amb { background: var(--amber); border-radius: 50%; width: 10px; margin: 0 4px; }
+.sw.reach { border-top: 2px dashed var(--teal); height: 0; }
+.screen.field.hop .flegend { bottom: auto; top: 72px; }
+.screen.field .devtray { bottom: auto; top: 70px; left: 50%; transform: translateX(-50%); max-width: none; align-items: center; color: var(--dim); font-size: 11px; gap: 6px; z-index: 3; }
+
+/* Hopper: flight planner along the bottom. */
+.fbottom { position: absolute; left: 16px; right: calc(min(420px, 36vw) + 32px); bottom: 14px; }
+.fplan { padding: 12px 14px; }
+.fplan.empty { max-width: 560px; }
+.fplan a, .it a { color: var(--cyan); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.pgrid { display: grid; grid-template-columns: 330px 1fr 220px; gap: 16px; align-items: start; }
+.profsvg { width: 100%; height: auto; display: block; }
+.profsvg .t { font: 500 10px var(--f-head); fill: var(--ink-2); }
+.profsvg .t.dim { fill: var(--dim); }
+.sl { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; }
+.sl span { display: flex; justify-content: space-between; }
+.sl b { color: var(--ink); }
+.sl input { width: 100%; accent-color: var(--blue); }
+.kv.tight { margin: 4px 0; gap: 2px 10px; font-size: 12.5px; }
+.kv b.big, .num.big { font-size: 18px; }
+.fplan.flying .bar { margin-top: 8px; }
+.tag { font-style: normal; font-size: 10.5px; padding: 1px 5px; border: 1px solid var(--teal); color: var(--teal); margin-left: 4px; vertical-align: 1px; }
+.tag.u { border-color: var(--coral); color: var(--coral); }
+
+/* Hopper: the landing. */
+.fland { position: absolute; inset: 0; z-index: 12; }
+.fland .lcv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lhud { position: absolute; top: 76px; right: 16px; width: 300px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); }
+.lhud .lk { font: 600 13px var(--f-head); color: var(--blue); margin-bottom: 4px; }
+.lhud .kv { font-size: 13px; }
+.lkeys { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--ink-2); margin: 6px 0 10px; }
+kbd { font: 600 11px var(--f-head); border: 1px solid var(--line-2); padding: 0 5px; margin-right: 2px; color: var(--ink); }
+.ltouch { position: absolute; bottom: 20px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+.ltouch > * { pointer-events: auto; }
+.ltouch .tl, .ltouch .tr { display: flex; gap: 10px; }
+@media (hover: hover) and (pointer: fine) { .ltouch { display: none; } }
+.ltouch .tcol { display: flex; flex-direction: column; gap: 8px; }
+.tb { width: 64px; height: 56px; border: 1px solid var(--line-2); background: rgba(7,19,40,.7); font-size: 22px; color: var(--ink); touch-action: none; user-select: none; }
+.tb:active { background: rgba(77,163,255,.3); }
+.lres { position: absolute; top: 76px; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); padding: 18px 20px; }
+.lres h2 { font-size: 28px; margin: 2px 0 6px; }
+.lres h2.ok { color: var(--teal); } .lres h2.warn { color: var(--amber); } .lres h2.bad { color: var(--coral); }
+
+@media (max-width: 820px) {
+  .fcards { grid-template-columns: 1fr; }
+  .ftop { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  .fgoal { order: 9; flex-basis: 100%; max-width: none; }
+  .fpanel { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 42%; }
+  .flegend { display: none; }
+  .fbottom { left: 8px; right: 8px; bottom: calc(42% + 16px); }
+  .pgrid { grid-template-columns: 1fr; gap: 8px; }
+  .pgrid .prof { display: none; }
+  .lhud { top: auto; bottom: 150px; left: 8px; right: 8px; width: auto; }
+}
+/* The map redraws every frame; a backdrop blur over it costs a full re-blur per frame. Solid panels instead. */
+.screen.field .pane, .screen.field .lhud { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(7,19,40,.93); }

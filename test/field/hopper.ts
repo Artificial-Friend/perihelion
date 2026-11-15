@@ -77,4 +77,17 @@ for (const loc of ['mars', 'earth'] as const) {
   s5.upg.engine = 1; s5.upg.structure = 1;
   console.log('     fully upgraded:', reach(H5).join(' '));
 }
+// Resume: save mid-flight, reload from JSON later; the computer lands it and the contract pays.
+for (const loc of ['mars', 'earth'] as const) {
+  const s = newHopSave(loc, 'Resume', T0), H = new Hopper(s), first = H.firstOffer()!;
+  H.accept(first.id, T0); H.launch(first.to, H.bestGamma(first.to), null, T0 + 10);
+  const saved = JSON.stringify(s), tH = s.flight!.tHandoff;
+  const H2 = new Hopper(JSON.parse(saved));
+  H2.tick(tH - 5);
+  ok(!!H2.s.flight && !H2.s.flight.result, loc + ': still in the air just before hand-off after a reload');
+  H2.tick(tH + 600);
+  ok(!H2.s.flight && H2.s.site === first.to && H2.s.earned === first.pay, loc + ': reloaded later, the computer landed it and it paid (' + H2.s.earned + ')');
+  const H3 = new Hopper(JSON.parse(saved)); H3.tick(tH + 600);
+  ok(JSON.stringify(H3.s) === JSON.stringify(H2.s), loc + ': the same reload gives the same result');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed'); process.exit(fails ? 1 : 0);

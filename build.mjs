@@ -24,6 +24,15 @@ const html = fs.readFileSync(path.join(root, 'src/ui/shell.html'), 'utf8').repla
 fs.writeFileSync(path.join(dist, 'index.html'), html);
 for (const f of fs.readdirSync(path.join(root, 'assets/tex'))) fs.copyFileSync(path.join(root, 'assets/tex', f), path.join(dist, 'tex', f));
 
+// Field operations on their own: no 3D, no WebAssembly core, one self-contained page.
+const fr = await esbuild.build({
+  entryPoints: [path.join(root, 'src/field/main.ts')], bundle: true, format: 'esm', target: 'es2022',
+  write: false, minify: !dev, sourcemap: false, legalComments: 'none', logLevel: 'warning',
+});
+const fjs = fr.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
+const fshell = fs.readFileSync(path.join(root, 'src/ui/field-shell.html'), 'utf8');
+fs.writeFileSync(path.join(dist, 'field.html'), fshell.replace('/*CSS*/', () => css).replace('/*JS*/', () => fjs));
+
 // Source bundle published next to the game, so the code survives workspace resets.
 const files = {};
 const walk = (d) => { for (const f of fs.readdirSync(path.join(root, d))) { const p = path.join(d, f); if (fs.statSync(path.join(root, p)).isDirectory()) walk(p); else if (!p.endsWith('core_wasm.ts') && !p.endsWith('.wasm')) files[p] = fs.readFileSync(path.join(root, p), 'utf8'); } };
@@ -32,4 +41,4 @@ for (const f of ['build.mjs', 'package.json', 'tsconfig.json']) if (fs.existsSyn
 fs.writeFileSync(path.join(dist, 'source.json'), JSON.stringify({ note: 'PERIHELION source. Restore each key to its path.', files }));
 
 const kb = (f) => (fs.statSync(path.join(dist, f)).size / 1024).toFixed(0) + ' KB';
-console.log('dist/index.html', kb('index.html'), '· game.js', kb('game.js'), '· source.json', kb('source.json'));
+console.log('dist/index.html', kb('index.html'), '· game.js', kb('game.js'), '· field.html', kb('field.html'), '· source.json', kb('source.json'));

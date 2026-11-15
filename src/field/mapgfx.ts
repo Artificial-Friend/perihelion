@@ -95,6 +95,7 @@ export class MapView {
   drawBase(ctx: CanvasRenderingContext2D, chart: HTMLCanvasElement) {
     const r = this.r, a = this.toScr({ x: -r.half, y: r.half }), b = this.toScr({ x: r.half, y: -r.half });
     ctx.fillStyle = '#050c1a'; ctx.fillRect(0, 0, this.W, this.H);
+    ctx.save(); ctx.beginPath(); ctx.rect(this.box.x, this.box.y, this.box.w, this.box.h); ctx.clip();
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(chart, a.x, a.y, b.x - a.x, b.y - a.y);
     // Grid: a step that keeps lines 60–140 px apart.
@@ -121,6 +122,7 @@ export class MapView {
     const sb = steps.find(s => s * this.scale > 90) || step, x0 = this.box.x + 18, y0 = this.box.y + this.box.h - 22;
     ctx.strokeStyle = 'rgba(169,191,223,.8)'; ctx.beginPath(); ctx.moveTo(x0, y0 - 4); ctx.lineTo(x0, y0); ctx.lineTo(x0 + sb * this.scale, y0); ctx.lineTo(x0 + sb * this.scale, y0 - 4); ctx.stroke();
     ctx.fillStyle = 'rgba(169,191,223,.9)'; ctx.fillText(sb + ' km', x0 + sb * this.scale + 6, y0 + 3);
+    ctx.restore();
   }
 }
 

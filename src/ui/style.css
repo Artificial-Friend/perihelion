@@ -392,3 +392,12 @@ kbd { font: 600 11px var(--f-head); border: 1px solid var(--line-2); padding: 0 
 }
 /* The map redraws every frame; a backdrop blur over it costs a full re-blur per frame. Solid panels instead. */
 .screen.field .pane, .screen.field .lhud { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(7,19,40,.93); }
+/* Standalone field-operations title. */
+.fieldtitle { overflow: auto; background: radial-gradient(ellipse at 20% 30%, #0b1d3a, var(--abyss) 70%); }
+.fieldtitle .wrap1 { position: relative; width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 32px; }
+.fieldtitle .fieldops { margin-top: 8px; }
+.fdescs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.fdescs b { font: 600 14px var(--f-head); color: var(--ink); }
+.fdesc { margin-top: 4px; }
+.fieldtitle code { color: var(--cyan); }
+@media (max-width: 820px) { .fdescs { grid-template-columns: 1fr; } .fieldtitle .wrap1 { padding-top: 24px; } }
